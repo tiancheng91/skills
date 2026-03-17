@@ -6,13 +6,13 @@ Agent Skills 集合，为 AI 助手提供专项能力扩展。
 
 | 技能 | 描述 |
 |------|------|
-| [wechat-msg-send](./skills/wechat-msg-send) | 微信消息自动化发送 |
+| [wechat-message](./skills/wechat-message) | 微信消息自动化发送 |
 | [stock-sdk-mcp](./skills/stock-sdk-mcp) | 股票行情数据服务 |
 | [xiaomi-cam-snapshot](./skills/xiaomi-cam-snapshot) | 小米摄像头截图 |
 
 ---
 
-## wechat-msg-send
+## wechat-message
 
 微信消息自动化发送技能，支持 macOS 和 Windows 平台。
 
@@ -101,7 +101,7 @@ python scripts/camera_client.py --server http://localhost:8001 --password YOUR_P
 skills/
 ├── README.md                    # 本文件
 └── skills/
-    ├── wechat-msg-send/         # 微信消息发送
+    ├── wechat-message/         # 微信消息发送
     │   ├── SKILL.md
     │   └── scripts/
     ├── stock-sdk-mcp/           # 股票行情服务
