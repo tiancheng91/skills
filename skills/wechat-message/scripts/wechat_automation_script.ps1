@@ -1,4 +1,5 @@
-# 微信自动化脚本 - Windows 版 - 发送消息给联系人
+﻿# 微信自动化脚本 - Windows 版 - 发送消息给联系人
+# 编码说明：本文件须为 UTF-8 带 BOM，否则在中文 Windows 下会被当 GBK 解析导致语法错误（如报“缺少右侧大括号”）
 # 用法: powershell -ExecutionPolicy Bypass -File wechat_automation_script.ps1 [用户名] [消息内容]
 # 若不传参数，则从剪切板获取：第一行为联系人名称，第二行起为消息内容
 # 参数说明:
@@ -33,8 +34,9 @@ if ($args.Count -ge 2 -and $MessageText -eq "") { $MessageText = $args[1] }
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-# P/Invoke：置前窗口与最小化
-Add-Type @"
+# P/Invoke：置前窗口与最小化（同一会话重复运行时不重复添加类型）
+try {
+    Add-Type -TypeDefinition @"
 using System;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -44,7 +46,7 @@ public class Win32 {
     [DllImport("user32.dll", SetLastError = true)]
     public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
     [DllImport("user32.dll")]
-    public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+    public static extern bool GetWindowRect(IntPtr hWnd, out Win32.RECT lpRect);
     [DllImport("user32.dll")]
     public static extern bool SetCursorPos(int x, int y);
     [DllImport("user32.dll")]
@@ -57,13 +59,18 @@ public class Win32 {
     public struct RECT { public int Left; public int Top; public int Right; public int Bottom; }
 }
 "@
+} catch {
+    if ($_.Exception.Message -notmatch "already exists") { throw }
+}
 
 function Get-WeChatWindowHandle {
-    $procs = @("WeChat", "WeChatApp", "WeChatMain")
+    $procs = @("微信", "Weixin")
     foreach ($name in $procs) {
-        $p = Get-Process -Name $name -ErrorAction SilentlyContinue
-        if ($p -and $p.MainWindowHandle -ne [IntPtr]::Zero) {
-            return $p.MainWindowHandle
+        $pList = @(Get-Process -Name $name -ErrorAction SilentlyContinue)
+        foreach ($p in $pList) {
+            if ($p -and $p.MainWindowHandle -ne [IntPtr]::Zero) {
+                return $p.MainWindowHandle
+            }
         }
     }
     return $null
@@ -90,6 +97,11 @@ function Send-KeysToWeChat {
 
 # 主流程
 try {
+    # 0. 校验联系人名
+    if ($UserName -eq "") {
+        Write-Error "联系人名不能为空，请通过参数或剪切板（第一行）提供。"
+        exit 1
+    }
     # 1. 激活微信
     $hwnd = Focus-WeChat
     Start-Sleep -Seconds 2
@@ -110,7 +122,7 @@ try {
     Start-Sleep -Milliseconds 1500
 
     # 5. 点击窗口右下角定位输入框
-    $rect = [Win32+RECT]::new()
+    $rect = New-Object -TypeName "Win32+RECT"
     [Win32]::GetWindowRect($hwnd, [ref]$rect) | Out-Null
     $x = $rect.Right - 20
     $y = $rect.Bottom - 20
@@ -120,12 +132,12 @@ try {
     [Win32]::mouse_event([Win32]::MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
     Start-Sleep -Seconds 1
 
-    # 6. 粘贴消息内容
+    # 6. 粘贴消息内容（仅当有内容时粘贴，否则会误粘贴上一步的联系人名）
     if ($MessageText -ne "") {
         Set-Clipboard -Value $MessageText
+        Send-KeysToWeChat("^v")
+        Start-Sleep -Seconds 2
     }
-    Send-KeysToWeChat("^v")
-    Start-Sleep -Seconds 2
 
     # 7. 回车发送
     Send-KeysToWeChat("{ENTER}")

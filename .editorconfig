@@ -1,0 +1,7 @@
+# EditorConfig: https://editorconfig.org
+# 确保 .ps1 保存为 UTF-8 带 BOM，在中文 Windows PowerShell 下才能正确解析中文
+
+root = true
+
+[*.ps1]
+charset = utf-8-bom
