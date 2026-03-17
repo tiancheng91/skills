@@ -165,7 +165,7 @@ osascript scripts/wechat_automation_script.applescript "Yatocala" "hello，这�
 ## 项目结构
 
 ```
-wechat-msg-send/
+wechat-message/
 ├── README.md               # 本使用说明
 ├── SKILL.md                # 技能/集成说明
 ├── scripts/
