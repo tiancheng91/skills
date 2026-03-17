@@ -104,7 +104,7 @@ on run argv
         end tell
     end tell
 
-    delay 3
+    delay 1
 
     -- 隐藏微信窗口（使用 Cmd+H）
     tell application "System Events"
