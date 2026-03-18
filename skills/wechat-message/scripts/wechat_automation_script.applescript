@@ -20,12 +20,19 @@ on run argv
         set messageText to item 2 of argv
     end if
 
-    -- 确保微信处于最前面
-    tell application "WeChat"
-        activate
-    end tell
-
-    delay 2
+    -- 拉起微信：先 activate，再点击 Dock 图标（可恢复最小化到 Dock 的窗口）
+    tell application "WeChat" to activate
+    delay 0.3
+    try
+        tell application "System Events" to tell process "Dock" to tell list 1
+            try
+                click UI element "WeChat"
+            on error
+                click UI element "微信"
+            end try
+        end tell
+    end try
+    delay 0.5
 
     -- 使用快捷键 Cmd+F 打开搜索框
     tell application "System Events"
@@ -38,7 +45,7 @@ on run argv
 
     -- 输入用户名（使用剪切板粘贴方式）
     if userName is not "" then
-        -- 如果提供了用户名参数,先存入剪切板
+        -- 如果提供了用户名参数,先存入剪切板tesdt
         set the clipboard to userName
     end if
     -- 直接使用 Cmd+V 粘贴用户名（无论是否提供参数,都使用粘贴方式）
