@@ -95,9 +95,9 @@ on run argv
             tell process "WeChat"
                 set windowPosition to position of window 1
                 set windowSize to size of window 1
-                -- 计算右下角位置（窗口宽度-20, 窗口高度-20）
-                set xCoord to (item 1 of windowPosition) + (item 1 of windowSize) - 20
-                set yCoord to (item 2 of windowPosition) + (item 2 of windowSize) - 20
+                -- 计算右下角位置（窗口宽度-25, 窗口高度-10）
+                set xCoord to (item 1 of windowPosition) + (item 1 of windowSize) - 25
+                set yCoord to (item 2 of windowPosition) + (item 2 of windowSize) - 10
             end tell
         end tell
         my clickAtScreenPosition(xCoord, yCoord)
@@ -155,6 +155,7 @@ on clickAtScreenPosition(x, y)
     set py to y as integer
     try
         do shell script "cliclick c:" & px & "," & py
+        log "[wechat-automation] cliclick 点击成功，坐标 (" & px & "," & py & ")"
     on error errMsg number errNum
         log "[wechat-automation] cliclick 点击失败 (" & errNum & "): " & errMsg & "，坐标 (" & px & "," & py & ")"
     end try
