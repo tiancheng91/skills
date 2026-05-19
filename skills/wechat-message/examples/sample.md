@@ -79,6 +79,26 @@ osascript scripts/wechat_automation_script.applescript "项目组" "@张三 请�
 
 ---
 
+## 示例 6：发送本地图片
+
+**场景**: 给好友发送一张截图
+
+**命令**:
+```bash
+osascript scripts/wechat_automation_script.applescript "张三" "" "/Users/me/Desktop/screenshot.png"
+```
+
+**带说明文字**:
+```bash
+osascript scripts/wechat_automation_script.applescript "张三" "请看截图" "/Users/me/Desktop/screenshot.png"
+```
+
+**预期结果**:
+- 图片通过剪贴板粘贴到聊天框并发送
+- 若同时提供文字，先发送文字再发送图片
+
+---
+
 ## 执行时间参考
 
 | 步骤 | 延时 |

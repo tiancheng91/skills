@@ -1,16 +1,18 @@
 ﻿# 微信自动化脚本 - Windows 版 - 发送消息给联系人
 # 编码说明：本文件须为 UTF-8 带 BOM，否则在中文 Windows 下会被当 GBK 解析导致语法错误（如报“缺少右侧大括号”）
-# 用法: powershell -ExecutionPolicy Bypass -File wechat_automation_script.ps1 [用户名] [消息内容]
+# 用法: powershell -ExecutionPolicy Bypass -File wechat_automation_script.ps1 [用户名] [消息内容] [图片路径]
 # 若不传参数，则从剪切板获取：第一行为联系人名称，第二行起为消息内容
 # 参数说明:
 #   $args[0]: 用户名 (可选，不传则从剪切板获取)
-#   $args[1]: 消息内容 (可选，不传则从剪切板获取)
+#   $args[1]: 消息内容 (可选，可与图片二选一或同时使用)
+#   $args[2]: 图片路径或 URL (可选，本地路径或 http(s) 图片地址)
 
 #Requires -Version 5.1
 
 param(
     [string]$UserName = "",
-    [string]$MessageText = ""
+    [string]$MessageText = "",
+    [string]$ImagePath = ""
 )
 
 # 若未传参，从剪切板读取（第一行=联系人，其余=消息）
@@ -27,9 +29,47 @@ if ($UserName -eq "" -and $MessageText -eq "" -and $args.Count -eq 0) {
     }
 }
 
-# 兼容位置参数：powershell -File script.ps1 "联系人" "消息"
+# 兼容位置参数：powershell -File script.ps1 "联系人" "消息" "图片路径"
 if ($args.Count -ge 1 -and $UserName -eq "") { $UserName = $args[0] }
 if ($args.Count -ge 2 -and $MessageText -eq "") { $MessageText = $args[1] }
+if ($args.Count -ge 3 -and $ImagePath -eq "") { $ImagePath = $args[2] }
+
+$script:TempImageFile = $null
+
+function Resolve-ImagePath {
+    param([string]$Input)
+    if ($Input -match '^https?://') {
+        $uri = [Uri]$Input
+        $ext = [System.IO.Path]::GetExtension($uri.AbsolutePath).ToLower()
+        if ($ext -notin @('.png', '.jpg', '.jpeg', '.gif', '.webp', '.tif', '.tiff', '.bmp')) {
+            $ext = '.jpg'
+        }
+        $dest = Join-Path ([System.IO.Path]::GetTempPath()) ("wechat-img-{0}{1}" -f [Guid]::NewGuid().ToString('N'), $ext)
+        try {
+            Invoke-WebRequest -Uri $Input -OutFile $dest -UseBasicParsing -TimeoutSec 30
+        } catch {
+            Write-Error "图片下载失败: $Input"
+            exit 1
+        }
+        if (-not (Test-Path -LiteralPath $dest -PathType Leaf) -or (Get-Item -LiteralPath $dest).Length -eq 0) {
+            Remove-Item -LiteralPath $dest -Force -ErrorAction SilentlyContinue
+            Write-Error "图片下载失败（空文件）: $Input"
+            exit 1
+        }
+        $script:TempImageFile = $dest
+        return $dest
+    }
+    $local = [System.IO.Path]::GetFullPath($Input)
+    if (-not (Test-Path -LiteralPath $local -PathType Leaf)) {
+        Write-Error "图片文件不存在: $local"
+        exit 1
+    }
+    return $local
+}
+
+if ($ImagePath -ne "") {
+    $ImagePath = Resolve-ImagePath -Input $ImagePath
+}
 
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
@@ -95,11 +135,34 @@ function Send-KeysToWeChat {
     [System.Windows.Forms.SendKeys]::SendWait($Keys)
 }
 
+function Set-ClipboardImage {
+    param([string]$Path)
+    $img = [System.Drawing.Image]::FromFile($Path)
+    try {
+        [System.Windows.Forms.Clipboard]::SetImage($img)
+    } finally {
+        $img.Dispose()
+    }
+}
+
+function Send-WeChatPasteAndEnter {
+    Send-KeysToWeChat("^v")
+    Start-Sleep -Seconds 2
+    Send-KeysToWeChat("{ENTER}")
+    Start-Sleep -Milliseconds 500
+    Send-KeysToWeChat("{ENTER}")
+    Start-Sleep -Seconds 1
+}
+
 # 主流程
 try {
     # 0. 校验联系人名
     if ($UserName -eq "") {
         Write-Error "联系人名不能为空，请通过参数或剪切板（第一行）提供。"
+        exit 1
+    }
+    if ($MessageText -eq "" -and $ImagePath -eq "") {
+        Write-Error "消息内容和图片路径不能同时为空。"
         exit 1
     }
     # 1. 激活微信
@@ -132,18 +195,19 @@ try {
     [Win32]::mouse_event([Win32]::MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
     Start-Sleep -Seconds 1
 
-    # 6. 粘贴消息内容（仅当有内容时粘贴，否则会误粘贴上一步的联系人名）
+    # 6. 发送文本（若有）
     if ($MessageText -ne "") {
         Set-Clipboard -Value $MessageText
-        Send-KeysToWeChat("^v")
-        Start-Sleep -Seconds 2
+        Send-WeChatPasteAndEnter
     }
 
-    # 7. 回车发送
-    Send-KeysToWeChat("{ENTER}")
-    Start-Sleep -Milliseconds 500
-    Send-KeysToWeChat("{ENTER}")
-    Start-Sleep -Seconds 3
+    # 7. 发送图片（若有）
+    if ($ImagePath -ne "") {
+        Set-ClipboardImage -Path $ImagePath
+        Send-WeChatPasteAndEnter
+    }
+
+    Start-Sleep -Seconds 2
 
     # 8. 最小化微信窗口
     [Win32]::ShowWindow($hwnd, [Win32]::SW_MINIMIZE) | Out-Null
@@ -152,4 +216,8 @@ try {
 } catch {
     Write-Error $_.Exception.Message
     exit 1
+} finally {
+    if ($script:TempImageFile -and (Test-Path -LiteralPath $script:TempImageFile)) {
+        Remove-Item -LiteralPath $script:TempImageFile -Force -ErrorAction SilentlyContinue
+    }
 }

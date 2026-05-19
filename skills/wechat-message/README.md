@@ -22,12 +22,12 @@
 
 **macOS：**
 ```bash
-osascript scripts/wechat_automation_script.applescript "联系人名称" "消息内容"
+osascript scripts/wechat_automation_script.applescript "联系人名称" "消息内容" "图片路径"
 ```
 
 **Windows（PowerShell）：**
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/wechat_automation_script.ps1 "联系人名称" "消息内容"
+powershell -ExecutionPolicy Bypass -File scripts/wechat_automation_script.ps1 "联系人名称" "消息内容" "图片路径"
 ```
 
 例如给好友「张三」发一条消息：
@@ -61,9 +61,12 @@ powershell -ExecutionPolicy Bypass -File scripts/wechat_automation_script.ps1 [�
 | 参数           | 必填 | 说明 |
 |----------------|------|------|
 | 联系人名称     | 否*  | 微信好友备注名或群名称，需与微信里显示一致；不传则从 **剪切板** 读取 |
-| 消息内容       | 否*  | 要发送的文本；不传则从 **剪切板** 读取 |
+| 消息内容       | 否** | 要发送的文本；不传则从 **剪切板** 读取（仅文本模式） |
+| 图片路径/URL   | 否** | 本地图片路径或 `http(s)://` 图片地址；与消息至少提供一项 |
 
 \* 两个参数都不传时，会依次从剪切板取「联系人名称」和「消息内容」并发送。若只传一个参数，另一个仍从剪切板获取。
+
+\** 使用第三个参数发送图片时，消息内容可传空字符串 `""`；若同时提供消息与图片，先发送文本再发送图片。
 
 **使用剪切板方式**：先把「联系人名称」或「消息内容」复制到剪切板，再在项目根目录执行：
 
@@ -127,6 +130,27 @@ osascript scripts/wechat_automation_script.applescript "项目组" "@张三 请�
 osascript scripts/wechat_automation_script.applescript "Yatocala" "hello，这是测试消息"
 ```
 
+### 7. 发送本地图片
+
+仅发图片（消息参数传空字符串）：
+
+```bash
+osascript scripts/wechat_automation_script.applescript "张三" "" "/Users/me/Desktop/screenshot.png"
+```
+
+先发文字再发图片：
+
+```bash
+osascript scripts/wechat_automation_script.applescript "张三" "请看截图" "/Users/me/Desktop/screenshot.png"
+osascript scripts/wechat_automation_script.applescript "张三" "" "https://example.com/image.png"
+```
+
+**Windows：**
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/wechat_automation_script.ps1 "张三" "" "C:\Users\me\Desktop\screenshot.png"
+```
+
 ---
 
 ## 权限配置
@@ -158,6 +182,7 @@ osascript scripts/wechat_automation_script.applescript "Yatocala" "hello，这�
 | 消息没发出去   | 焦点不在输入框     | 不要在此期间点击其他窗口，可重试一次 |
 | 搜不到联系人   | 名称不一致         | 在微信里确认备注名/群名，再原样填写 |
 | 脚本报错/无反应 | 未给辅助功能权限   | 按上文「权限配置」检查并勾选终端等 App |
+| 不能获得 window 1 | 微信被隐藏/最小化  | 脚本会 `open -a WeChat` 尝试恢复一次；仍失败时手动打开微信 |
 | 中文乱码       | 终端编码非 UTF-8   | 在终端设置里改为 UTF-8 后重试 |
 
 ---
