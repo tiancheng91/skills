@@ -9,6 +9,7 @@ Agent Skills 集合，为 AI 助手提供专项能力扩展。
 | [wechat-message](./skills/wechat-message) | 微信消息自动化发送 |
 | [stock-sdk-mcp](./skills/stock-sdk-mcp) | 股票行情数据服务 |
 | [xiaomi-cam-snapshot](./skills/xiaomi-cam-snapshot) | 小米摄像头截图 |
+| [tinypng-compress](./skills/tinypng-compress) | PNG 图片压缩 |
 
 ---
 
@@ -95,6 +96,35 @@ python scripts/camera_client.py --server http://localhost:8001 --password YOUR_P
 
 ---
 
+## tinypng-compress
+
+PNG 图片压缩技能，通过 TinyPNG/Tinify API 压缩 PNG 文件。
+
+**功能特性：**
+- 单文件与多文件压缩
+- 默认输出 `.min.png`，不覆盖原图
+- 支持 `--in-place` 原地压缩
+- 失败续跑并汇总
+
+**快速使用：**
+```bash
+# 压缩单个文件
+bash scripts/compress.sh foo.png
+
+# 压缩多个文件
+bash scripts/compress.sh a.png b.png assets/logo.png
+
+# 原地压缩
+bash scripts/compress.sh --in-place foo.png
+```
+
+**前置要求：**
+```bash
+export TINIFY_API_KEY="YOUR_API_KEY"
+```
+
+---
+
 ## 目录结构
 
 ```
@@ -107,6 +137,9 @@ skills/
     ├── stock-sdk-mcp/           # 股票行情服务
     │   └── SKILL.md
     └── xiaomi-cam-snapshot/     # 小米摄像头截图
+        ├── SKILL.md
+        └── scripts/
+    └── tinypng-compress/         # PNG 压缩
         ├── SKILL.md
         └── scripts/
 ```
